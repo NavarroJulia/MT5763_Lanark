@@ -35,6 +35,8 @@ Write and implement code (modifying code already given to you in the lecture not
 two sample randomisation test), to obtain a jackknife estimate for the standard error of the 
 mean for seal body length, using the seals data set (seals.csv).
 
+I.e., sampling without replacement.
+
 */
 
 /* ------------------------------------------------------------------------------------- */
@@ -174,6 +176,25 @@ run;
 
 /* Standard Error is 5.50995 which is smaller than for the Jackknife sample (11.029764539)*/
 
-/* ------------------------------------------------------------------------------------- */
 
+/* From SAS website: (https://support.sas.com/kb/24/982.html)
+ 
+                        The Jackknife:
+
+The jackknife works only for statistics that are smooth functions of the data. Statistics
+that are not smooth functions of the data, such as quantiles, may yield inconsistent 
+jackknife estimates. The best results are obtained with statistics that are linear 
+functions of the data. For highly nonlinear statistics, the jackknife can be inaccurate.
+
+*/
+
+
+
+
+/* relationship appears linear: */
+
+proc plot data=SEALS.IMPORT;
+   plot lengths*testosterone;
+   title 'Lengths against testosterone';
+run;
 ```
