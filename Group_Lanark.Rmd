@@ -13,6 +13,30 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Jackknifing
 
+
+<!--- 
+
+Deliverables
+• Include the code used to perform the simulations / calculations, and the results obtained.
+• Compare the jackknife estimate to the analytical estimate for the standard error of the mean and
+discuss.
+
+
+Mean from sample = 110.71628445
+   Mean using Jackknifing = 109.6201  
+
+--->
+
+See annotated code below for the implementation of the Jackknifing method in SAS.
+
+We found that the average lengths using the jackknife estimate was 109.62 cm with a standard error (SE) of 11.03 cm. Calculating these statistics analytically we obtained a mean length of 110.72 cm with SE = 5.5 cm. Although the means are relatively the same, the SEs of the analytic and jackknifing methods differ (jackknife mean approximately twice as large sample mean). This is generally the because "the conservative property of the jackknife estimator" [1], and hence it will produce larger SEs. Inaccurate results can also arise if the data which is being estimated is not linear. However, in our case, the data is linear (see figure in code)
+
+
+
+
+
+
+
 ```
 /*Import data/ read in file:*/
 FILENAME REFFILE '/home/u62665966/sasuser.v94/Jack Knifing/seals.csv';
@@ -177,7 +201,25 @@ run;
 /* Standard Error is 5.50995 which is smaller than for the Jackknife sample (11.029764539)*/
 
 
-/* From SAS website: (https://support.sas.com/kb/24/982.html)
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+/* Compare the mean of the original data to the average using Jackknifing */
+
+
+/* Mean from sample = 110.71628445
+   Mean using Jackknifing = 109.6201 (see code below for calculation)
+*/
+
+proc sql;
+    select avg(Means) as Mean_Jackknife
+    from seals.import_Jack_OnlyMean;
+quit;
+
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+
+
+/* Note: from SAS website: (https://support.sas.com/kb/24/982.html)
  
                         The Jackknife:
 
@@ -189,12 +231,38 @@ functions of the data. For highly nonlinear statistics, the jackknife can be ina
 */
 
 
-
-
 /* relationship appears linear: */
 
 proc plot data=SEALS.IMPORT;
    plot lengths*testosterone;
    title 'Lengths against testosterone';
 run;
+
+ods graphics on;
+proc reg data =SEALS.IMPORT alpha = 0.05 plots(only)=(diagnostics residuals fitplot observedbypredicted);
+    model lengths = testosterone;
+run;
+ods graphics off;
+/* -appears linera
+   -appears normally distributed
+   -residuals exhibit no patterns
+*/
+
 ```
+
+
+
+
+
+## References
+
+
+[1]
+
+Hansen, B., Chesher, A., Chiang, H., Hillier, G., Ibragimov, R., Mackinnon, J., Müeller, U., Nielsen, M., Paolella, M., Phillips, P. and Welz, T. (2022). Jackknife Standard Errors for Clustered Regression. [online] Available at: https://ssc.wisc.edu/~bhansen/papers/tcauchy.pdf [Accessed 25 Nov. 2022].
+
+
+
+
+
+
