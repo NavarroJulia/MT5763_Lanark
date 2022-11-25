@@ -11,6 +11,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Bootstrapping
 
+<br><br><br>
+
 ## Jackknifing
 
 
@@ -29,13 +31,11 @@ Mean from sample = 110.71628445
 
 See annotated code below for the implementation of the Jackknifing method in SAS.
 
-We found that the average lengths using the jackknife estimate was 109.62 cm with a standard error (SE) of 11.03 cm. Calculating these statistics analytically we obtained a mean length of 110.72 cm with SE = 5.5 cm. Although the means are relatively the same, the SEs of the analytic and jackknifing methods differ (jackknife mean approximately twice as large sample mean). This is generally the because "the conservative property of the jackknife estimator" [1], and hence it will produce larger SEs. Inaccurate results can also arise if the data which is being estimated is not linear. However, in our case, the data is linear (see figure in code)
+We found that the average lengths using the jackknife estimate was 109.62 cm with a standard error (SE) of 11.03 cm. Calculating these statistics analytically we obtained a mean length of 110.72 cm with SE = 5.5 cm. Although the means are relatively the same, the SEs of the analytic and jackknifing methods differ (jackknife mean approximately twice as large sample mean). This is generally the because "the conservative property of the jackknife estimator" [1], and hence it will produce larger SEs. Inaccurate results can also arise if the data which is being estimated is not linear. However, in our case, the data is linear.
 
 
-
-
-
-
+### Code used 
+<br>
 
 ```
 /*Import data/ read in file:*/
@@ -259,7 +259,7 @@ ods graphics off;
 
 [1]
 
-Hansen, B., Chesher, A., Chiang, H., Hillier, G., Ibragimov, R., Mackinnon, J., Müeller, U., Nielsen, M., Paolella, M., Phillips, P. and Welz, T. (2022). Jackknife Standard Errors for Clustered Regression. [online] Available at: https://ssc.wisc.edu/~bhansen/papers/tcauchy.pdf [Accessed 25 Nov. 2022].
+Hansen, B., Chesher, A., Chiang, H., Hillier, G., Ibragimov, R., Mackinnon, J., Müeller, U., Nielsen, M., Paolella, M., Phillips, P. and Welz, T. (2022). Jackknife Standard Errors for Clustered Regression. [online] Available at: https://ssc.wisc.edu/~bhansen/papers/tcauchy.pdf  [Accessed 25 Nov. 2022].
 
 
 
