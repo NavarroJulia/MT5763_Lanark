@@ -1,14 +1,3 @@
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*This is a small SAS program to perform nonparametric bootstraps for a regression
-/*It is not efficient nor general*/
-/*Inputs: 																								*/
-/*	- NumberOfLoops: the number of bootstrap iterations
-/*	- Dataset: A SAS dataset containing the response and covariate										*/
-/*	- XVariable: The covariate for our regression model (gen. continuous numeric)						*/
-/*	- YVariable: The response variable for our regression model (gen. continuous numeric)				*/
-/*Outputs:																								*/
-/*	- ResultHolder: A SAS dataset with NumberOfLoops rows and two columns, RandomIntercept & RandomSlope*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 FILENAME REFFILE '/home/u62665966/sasuser.v94/Bootstrapping Group/seals.csv';
 
@@ -21,8 +10,7 @@ RUN;
 /* X - covariate : testosterone level
    Y - response : lengths          
   
-  
-  From notes:
+From notes:
 
    To produce an efficient bootstrap in SAS, we want to create all our bootstrap samples
    first, and then run the analyses over these (as opposed to resample, analyse, resample, 
@@ -41,15 +29,17 @@ RUN;
 /*    */
   
   
- /* regression bootstrap: case resampling */
-data SEALS2.IMPORT2(keep=x y);
-   set SEALS2.IMPORT(rename=(lengths=Y testosterone=X));  /* rename to make roles easier to understand */
+ /* Bootstrapping for regression parameters */
+
+data SEALS2.IMPORT2 (keep = X Y);
+  set SEALS2.IMPORT(rename=(lengths=Y testosterone=X));  
+  *rename lengths and testosterone as y and x (x is explanatory var and y is predicted var);
 run;
  
-/* 1. compute the statistics on the original data */
+/* without bootstrapping the parameter values are: */
 proc reg data=SEALS2.IMPORT2;
-   model Y = X / CLB covb;                          /* original estimates */
-run; quit;
+   model Y = X / CLB;  *gives the 95% confidence limits for parameters;
+run;quit;   
 /*  
 See the 95% CI of the parameters:
 Confidence Limit	Intercept    	X
@@ -61,19 +51,19 @@ upper 97.5         -9.82988	     0.44761   */
   
   
   
+/* Set names (change when put in macro) */
 
 title "Bootstrap Distribution of Regression Estimates";
 title2 "Case Resampling";
-%let NumSamples = 5000;       /* number of bootstrap resamples */
-%let IntEst = -21.52601	;     /* original estimates for later visualization */
-%let XEst   =    0.41127;
+%let NumSamples = 5000;       * number of bootstrap resamples;
+%let IntEst = -21.52601	;     * exact estimates of the intercept;
+%let XEst   =    0.41127;     * exact estimates of X - testosterone;
  
-/* 2. Generate many bootstrap samples by using PROC SURVEYSELECT */
+/* Generate our samples: (reps = number of samples wanted) */
 proc surveyselect data=SEALS2.IMPORT2 NOPRINT seed=314
      out=BootCases(rename=(Replicate=SampleID))
      method=urs              /* resample with replacement */
      samprate=1              /* each bootstrap sample has N observations */
-     /* OUTHITS                 use OUTHITS option to suppress the frequency var */
      reps=&NumSamples;       /* generate NumSamples bootstrap resamples */
 run;
 
@@ -82,36 +72,30 @@ proc print data=BootCases (obs=200);
 run;
 
 
-/* 3. Compute the statistic for each bootstrap sample */
-/* eg we have size(Num_samples) parameter estimations:*/
+/* Compute the statistic for EACH bootstrap sample */
+/* eg we have size(Num_samples) parameter estimations (PE):*/
 proc reg data=BootCases outest=PEBoot noprint;
    by SampleID;
    freq NumberHits;
    model Y = X;
 run;quit;
 
-proc print data=Peboot (obs=100);
+proc print data=PEboot (obs=100);
 run;
 
-/* 4. Visualize bootstrap distribution */
-proc sgplot data=PEBoot;
-   label Intercept = "Estimate of Intercept" X = "Estimate of Coefficient of X";
-   scatter x=Intercept y=X / markerattrs=(Symbol=CircleFilled) transparency=0.7;
-   /* Optional: draw reference lines at estimates for original data */
-   refline &IntEst / axis=x lineattrs=(color=blue);
-   refline &XEst / axis=y lineattrs=(color=blue);
-   xaxis grid; yaxis grid;
-run;
-
+/*    Visualize bootstrap distribution : 
+      Histograms for each of the parameters */
 
 title 'Distribution of Bootstrap parameters: Intercept';
   proc sgplot data=PEboot;
   histogram intercept;
+  refline &IntEst / axis=x lineattrs=(thickness=3 color=red pattern=dash) label = ("-21.52601");
 run;
 
-title 'Distribution of Bootstrap parameters: X';
+title 'Distribution of Bootstrap parameters: X (testosterone)';
   proc sgplot data=PEboot;
   histogram X;
+   refline &XEst / axis=x lineattrs=(thickness=3 color=red pattern=dash) label = ("0.41127");
 run;
 
   
@@ -119,6 +103,10 @@ proc stdize data=PEBoot vardef=N pctlpts=2.5 97.5  PctlMtd=ORD_STAT outstat=Pctl
    var Intercept X;
 run;
 
+/*            Intercept          X
+ LOCATION	 -21.60776753	0.4115022263 */
+
+/* give the CI : */
 proc report data=Pctls nowd;
   where _type_ =: 'P';
   label _type_ = 'Confidence Limit';
@@ -127,6 +115,8 @@ run;
   
   
 /*  
+
+95% CI for parameters:
 
 Bootstrap:
 
@@ -144,6 +134,8 @@ P97_5000	      -9.82988	     0.44761
 */
   
   
+/*  Now need to convert this into macro format and figure out how to determine the
+    speed up.....  */
   
   
   
@@ -153,8 +145,18 @@ P97_5000	      -9.82988	     0.44761
   
   
   
-  
-  
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*This is a small SAS program to perform nonparametric bootstraps for a regression
+/*It is not efficient nor general*/
+/*Inputs: 																								*/
+/*	- NumberOfLoops: the number of bootstrap iterations
+/*	- Dataset: A SAS dataset containing the response and covariate										*/
+/*	- XVariable: The covariate for our regression model (gen. continuous numeric)						*/
+/*	- YVariable: The response variable for our regression model (gen. continuous numeric)				*/
+/*Outputs:																								*/
+/*	- ResultHolder: A SAS dataset with NumberOfLoops rows and two columns, RandomIntercept & RandomSlope*/
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
   
   
   
