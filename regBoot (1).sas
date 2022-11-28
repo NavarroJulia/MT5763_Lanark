@@ -17,14 +17,19 @@ PROC IMPORT DATAFILE=REFFILE
 	OUT=SEALS2.IMPORT;
 	GETNAMES=YES;
 RUN;
+
 /* X - covariate : testosterone level
-   Y - response : lengths          */
+   Y - response : lengths          
   
-/*  From notes:
+  
+  From notes:
 
    To produce an efficient bootstrap in SAS, we want to create all our bootstrap samples
    first, and then run the analyses over these (as opposed to resample, analyse, resample, 
-   analyse…). */
+   analyse…). 
+*/
+  
+  
   
   
   
@@ -36,8 +41,7 @@ RUN;
 /*    */
   
   
-  
-  /* regression bootstrap: case resampling */
+ /* regression bootstrap: case resampling */
 data SEALS2.IMPORT2(keep=x y);
    set SEALS2.IMPORT(rename=(lengths=Y testosterone=X));  /* rename to make roles easier to understand */
 run;
@@ -46,17 +50,21 @@ run;
 proc reg data=SEALS2.IMPORT2;
    model Y = X / CLB covb;                          /* original estimates */
 run; quit;
-/*  covariance est table shows positive relationship. 
-
-Also see the 95% CI of the parameters:
-  Intercept : -33.22214	-9.82988
-           X:   0.37492  0.44761  */
+/*  
+See the 95% CI of the parameters:
+Confidence Limit	Intercept    	X
+lower 2.5          -33.22214	 0.37492
+upper 97.5         -9.82988	     0.44761   */
+  
+  
+  
+  
   
   
 
 title "Bootstrap Distribution of Regression Estimates";
 title2 "Case Resampling";
-%let NumSamples = 50;       /* number of bootstrap resamples */
+%let NumSamples = 5000;       /* number of bootstrap resamples */
 %let IntEst = -21.52601	;     /* original estimates for later visualization */
 %let XEst   =    0.41127;
  
@@ -82,6 +90,9 @@ proc reg data=BootCases outest=PEBoot noprint;
    model Y = X;
 run;quit;
 
+proc print data=Peboot (obs=100);
+run;
+
 /* 4. Visualize bootstrap distribution */
 proc sgplot data=PEBoot;
    label Intercept = "Estimate of Intercept" X = "Estimate of Coefficient of X";
@@ -91,6 +102,18 @@ proc sgplot data=PEBoot;
    refline &XEst / axis=y lineattrs=(color=blue);
    xaxis grid; yaxis grid;
 run;
+
+
+title 'Distribution of Bootstrap parameters: Intercept';
+  proc sgplot data=PEboot;
+  histogram intercept;
+run;
+
+title 'Distribution of Bootstrap parameters: X';
+  proc sgplot data=PEboot;
+  histogram X;
+run;
+
   
 proc stdize data=PEBoot vardef=N pctlpts=2.5 97.5  PctlMtd=ORD_STAT outstat=Pctls;
    var Intercept X;
@@ -185,10 +208,9 @@ run;
 %mend;
 
 options nonotes;
-/*Run the macro*/
-%regBoot(NumberOfLoops= 100, DataSet=SEALS2.IMPORT, XVariable=testosterone, YVariable=lengths);
 
-
+/*Run the macro, note this take comparatively longer than the code above (5000 loops)!!!*/
+%regBoot(NumberOfLoops= 5000, DataSet=SEALS2.IMPORT, XVariable=testosterone, YVariable=lengths);
 
 
 
