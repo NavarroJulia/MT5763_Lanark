@@ -26,6 +26,115 @@ RUN;
    first, and then run the analyses over these (as opposed to resample, analyse, resample, 
    analyse…). */
   
+  
+  
+/*    */
+/* Compute the statistic of interest for the original data */
+/* Resample B times from the data to form B bootstrap samples. */
+/* Compute the statistic on each bootstrap sample. This creates the bootstrap distribution, which approximates the sampling distribution of the statistic. */
+/* Use the approximate sampling distribution to obtain bootstrap estimates such as standard errors, confidence intervals, and evidence for or against the null hypothesis.   */
+/*    */
+  
+  
+  
+  /* regression bootstrap: case resampling */
+data SEALS2.IMPORT2(keep=x y);
+   set SEALS2.IMPORT(rename=(lengths=Y testosterone=X));  /* rename to make roles easier to understand */
+run;
+ 
+/* 1. compute the statistics on the original data */
+proc reg data=SEALS2.IMPORT2;
+   model Y = X / CLB covb;                          /* original estimates */
+run; quit;
+/*  covariance est table shows positive relationship. 
+
+Also see the 95% CI of the parameters:
+  Intercept : -33.22214	-9.82988
+           X:   0.37492  0.44761  */
+  
+  
+
+title "Bootstrap Distribution of Regression Estimates";
+title2 "Case Resampling";
+%let NumSamples = 50;       /* number of bootstrap resamples */
+%let IntEst = -21.52601	;     /* original estimates for later visualization */
+%let XEst   =    0.41127;
+ 
+/* 2. Generate many bootstrap samples by using PROC SURVEYSELECT */
+proc surveyselect data=SEALS2.IMPORT2 NOPRINT seed=314
+     out=BootCases(rename=(Replicate=SampleID))
+     method=urs              /* resample with replacement */
+     samprate=1              /* each bootstrap sample has N observations */
+     /* OUTHITS                 use OUTHITS option to suppress the frequency var */
+     reps=&NumSamples;       /* generate NumSamples bootstrap resamples */
+run;
+
+/*View the whole data set:*/
+proc print data=BootCases (obs=200);
+run;
+
+
+/* 3. Compute the statistic for each bootstrap sample */
+/* eg we have size(Num_samples) parameter estimations:*/
+proc reg data=BootCases outest=PEBoot noprint;
+   by SampleID;
+   freq NumberHits;
+   model Y = X;
+run;quit;
+
+/* 4. Visualize bootstrap distribution */
+proc sgplot data=PEBoot;
+   label Intercept = "Estimate of Intercept" X = "Estimate of Coefficient of X";
+   scatter x=Intercept y=X / markerattrs=(Symbol=CircleFilled) transparency=0.7;
+   /* Optional: draw reference lines at estimates for original data */
+   refline &IntEst / axis=x lineattrs=(color=blue);
+   refline &XEst / axis=y lineattrs=(color=blue);
+   xaxis grid; yaxis grid;
+run;
+  
+proc stdize data=PEBoot vardef=N pctlpts=2.5 97.5  PctlMtd=ORD_STAT outstat=Pctls;
+   var Intercept X;
+run;
+
+proc report data=Pctls nowd;
+  where _type_ =: 'P';
+  label _type_ = 'Confidence Limit';
+  columns ('Bootstrap Confidence Intervals (B=&NumSamples)' _ALL_);
+run; 
+  
+  
+/*  
+
+Bootstrap:
+
+Confidence Limit	Intercept    	X
+P2_5000	          -34.19822	     0.3890163
+P97_5000	      -14.58739	     0.4507608
+
+
+Compared to:
+         
+Confidence Limit	Intercept    	X
+P2_5000	          -33.22214	     0.37492
+P97_5000	      -9.82988	     0.44761  
+
+*/
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
                           /* Code given */
 
 %macro regBoot(NumberOfLoops, DataSet, XVariable, YVariable);
