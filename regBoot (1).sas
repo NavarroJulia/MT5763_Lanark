@@ -58,26 +58,7 @@ using the built-in SAS procedure.
 
 
 
-/* Investigate prior to using bootstrapping: */
 
-data SEALS2.IMPORT2 (keep = X Y);
-  set SEALS2.IMPORT(rename=(lengths=Y testosterone=X));  
-  *rename lengths and testosterone as y and x (x is explanatory var and y is predicted var);
-run;
- 
-/* without bootstrapping the parameter values are: */
-proc reg data=SEALS2.IMPORT2;
-   model Y = X / CLB;  *gives the 95% confidence limits for parameters;
-run;quit; 
-  
-/*  
-
-See the 95% CI of the parameters:
-Confidence Limit	Intercept   | 	X
-lower 2.5          -33.22214	|  0.37492
-upper 97.5         -9.82988	    |  0.44761  
-
-*/
   
   
 /*  --------------------------------------------------------------------------------------------  */ 
@@ -190,7 +171,7 @@ options nonotes;
 /* Start timer */
 %let _timer_start = %sysfunc(datetime());  
   
-%regressionBoot(5000, SEALS2.Import);
+%regressionBoot(100000, SEALS2.Import);
   
 /* Stop timer */
 data _null_;
@@ -279,6 +260,71 @@ run;
 
 /* for 500 samples: TOTAL DURATION:   0:00:08.80 */
  
+  
+  
+  
+  
+  
+  
+  
+            /* Investigate using built-in SAS procedure: */
+
+data SEALS2.IMPORT2 (keep = X Y);
+  set SEALS2.IMPORT(rename=(lengths=Y testosterone=X));  
+  *rename lengths and testosterone as y and x (x is explanatory var and y is predicted var);
+run;
+ 
+/* without bootstrapping the parameter values are: */
+proc reg data=SEALS2.IMPORT2;
+   model Y = X / CLB;  *gives the 95% confidence limits for parameters;
+run;quit; 
+  
+/*  
+See the 95% CI of the parameters:
+Confidence Limit	Intercept   | 	X
+lower 2.5          -33.22214	|  0.37492
+upper 97.5         -9.82988	    |  0.44761  
+*/ 
+
+
+%let Intlwr = -33.22214	;     * lwr CI of Intercept;
+%let Intupr = -9.82988;       * upr CI of Intercept;
+
+%let Xlwr = 0.37492	;      * lwr CI of X;
+%let Xupr = 0.44761;       * upr CI of X;
+
+
+
+/* Let us add these on top the histograms: */
+
+title 'Distribution of Bootstrap parameters: Intercept';
+  proc sgplot data=PEboot;
+  histogram intercept;
+  refline &variable_a_1 / axis=x lineattrs=(thickness=3 color=red pattern=dash) label = ("Location (=&variable_a_1)");
+/*  plot the confidence interval for intercept:  */
+  refline &variable_a_9 / axis=x lineattrs=(thickness=2 color=red pattern=solid) label = ("2.5% (=&variable_a_9)");
+  refline &variable_a_10 / axis=x lineattrs=(thickness=2 color=red pattern=solid) label = ("97.5% (=&variable_a_10)");
+  
+  refline &Intlwr / axis=x lineattrs=(thickness=2.5 color=blue pattern=solid) label = ("2.5% (=&Intlwr)");
+  refline &Intupr / axis=x lineattrs=(thickness=2.5 color=blue pattern=solid) label = ("97.5% (=&Intupr)");
+  
+run;
+
+title 'Distribution of Bootstrap parameters: X (Testosterone)';
+  proc sgplot data=PEboot;
+  histogram X;
+  refline &variable_b_1 / axis=x lineattrs=(thickness=3 color=red pattern=dash) label = ("Location (=&variable_b_1)");
+/*  plot the confidence interval for X:  */  
+  refline &variable_b_9 / axis=x lineattrs=(thickness=2 color=red pattern=solid) label = ("2.5% (=&variable_b_9)");
+  refline &variable_b_10 / axis=x lineattrs=(thickness=2 color=red pattern=solid) label = ("97.5% (=&variable_b_10)");
+
+  refline &Xlwr / axis=x lineattrs=(thickness=2.5 color=blue pattern=solid) label = ("2.5% (=&Xlwr)");
+  refline &Xupr / axis=x lineattrs=(thickness=2.5 color=blue pattern=solid) label = ("97.5% (=&Xupr)");
+  
+run;  
+  
+  
+  
   
   
   
