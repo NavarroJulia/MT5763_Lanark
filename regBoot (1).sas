@@ -1,4 +1,4 @@
-
+/* Import file: */
 FILENAME REFFILE '/home/u62665966/sasuser.v94/Bootstrapping Group/seals.csv';
 
 PROC IMPORT DATAFILE=REFFILE
@@ -7,36 +7,22 @@ PROC IMPORT DATAFILE=REFFILE
 	GETNAMES=YES;
 RUN;
 
-/* X - covariate : testosterone level
+/* Notes:
+
+   X - covariate : testosterone level
    Y - response : lengths          
   
-From notes:
+   From notes:
 
    To produce an efficient bootstrap in SAS, we want to create all our bootstrap samples
    first, and then run the analyses over these (as opposed to resample, analyse, resample, 
    analyse…). 
 */
-  
-  
-  
-/* Below is code but not in macro, below that is the macro called regressionBoot  */
-  
+ 
   
   /*  ------------------------------------------------------------------------  */
 
-  
-  
-/*    */
-/* Compute the statistic of interest for the original data */
-/* Resample B times from the data to form B bootstrap samples. */
-/* Compute the statistic on each bootstrap sample. This creates the bootstrap distribution, which approximates the sampling distribution of the statistic. */
-/* Use the approximate sampling distribution to obtain bootstrap estimates such as standard errors, confidence intervals, and evidence for or against the null hypothesis.   */
-/*    */
-  
-  
-  
-  
-  
+ 
   
                   /* Bootstrapping for regression parameters */
 
@@ -74,7 +60,7 @@ upper 97.5         -9.82988	    |  0.44761
 
 title "Bootstrap Distribution of Regression Estimates";
 title2 "Case Resampling";
-%let Samples = &NumSamples;       * number of bootstrap resamples; 
+%let Samples = &NumSamples;   * number of bootstrap resamples; 
 %let IntEst = -21.52601	;     * exact estimates of the intercept;
 %let XEst   =    0.41127;     * exact estimates of X - testosterone;
  
@@ -95,18 +81,15 @@ proc reg data=BootCases outest=PEBoot noprint;
    model Y = X;
 run;quit;
 
-
-
 /*  Gives location and confidence intervals etc  */
 proc stdize data=PEBoot vardef=N pctlpts=2.5 97.5  PctlMtd=ORD_STAT outstat=Pctls;
    var Intercept X;
 run;
 
-
-/* Create data set with CI and other values (merge with PEBoot for histograms) */
+/* Create data set with of lwr and upr limits of parameters */
 DATA Values; 
 SET Pctls;
-KEEP Intercept X _type_;
+KEEP Intercept X ;
 where _type_ =: 'P';
 label _type_ = 'Confidence Limit'; 
 rename Intercept = CI_Intercept ;
@@ -114,32 +97,32 @@ rename X = CI_X;
 RUN;
 
 
-
-/* Goal: extraxt the lower, upper limits of the parameters into columns each (repeated 
+/* Extraxt the lower, upper limits of the parameters into columns each (repeated 
    in each column for plotting purposes) */
+  
+/* use CALL SYMPUT in a DATA step to assign the values to macro variables (used code from
+   stackoverflow with minor edits) */
+data _null_;
+    set Values;
+    call symput('variable_a_'||left(_n_), left(CI_Intercept));
+    call symput('variable_b_'||left(_n_), left(CI_X));
+run;
 
+* check the macro variables values;
 
-%let Samples = &NumSamples;      
+/* lower CI of Intercept: */
+%put &=variable_a_1;
 
+/* upper CI of Intercept: */
+%put &=variable_a_2;
 
-/* DATA Values2;  */
-/* SET Values; */
-/* keep CI_Intercept */
-/* RUN; */
-/*  */
-/* PROC TRANSPOSE DATA=values2 OUT=values2_1 (drop = _label_ _name_); */
-/* VAR CI_Intercept;         */
-/* RUN;  */
-/*  */
-/* Merge PEBoot with Values: */
-/* DATA PEBoot2; */
-/* SET  PEBoot Values2_1;  */
-/* RUN; */
+/* lower CI of X: */
+%put &=variable_b_1;
 
+/* upper CI of X: */
+%put &=variable_b_2;
 
-
-
-
+/* -------------------------------------------------------------------------------------- */
 
 /*    Visualize bootstrap distribution : 
       Histograms for each of the parameters */
@@ -148,18 +131,22 @@ title 'Distribution of Bootstrap parameters: Intercept';
   proc sgplot data=PEboot;
   histogram intercept;
   refline &IntEst / axis=x lineattrs=(thickness=3 color=red pattern=dash) label = ("-21.52601 (no bootstrap)");
-/*   refline &IntEst / axis=x lineattrs=(thickness=3 color=red pattern=dash) label = ("2.5%"); */
-/*   refline &IntEst / axis=x lineattrs=(thickness=3 color=red pattern=dash) label = ("97.5%"); */
-run;
+/*  plot the confidence interval for intercept;  */
+  refline &variable_a_1 / axis=x lineattrs=(thickness=3 color=red pattern=dash) label = ("2.5% (=&variable_a_1)");
+  refline &variable_a_2 / axis=x lineattrs=(thickness=3 color=red pattern=dash) label = ("97.5% (=&variable_a_2)");
+  run;
 
 title 'Distribution of Bootstrap parameters: X (testosterone)';
   proc sgplot data=PEboot;
   histogram X;
    refline &XEst / axis=x lineattrs=(thickness=3 color=red pattern=dash) label = ("0.41127 (no bootstrap)");
+  refline &variable_b_1 / axis=x lineattrs=(thickness=3 color=red pattern=dash) label = ("2.5% (=&variable_b_1)");
+  refline &variable_b_2 / axis=x lineattrs=(thickness=3 color=red pattern=dash) label = ("97.5% (=&variable_b_2)");
 run;
 
+/* -------------------------------------------------------------------------------------- */
 
-/* select the CI (gives a table of the CI) need this in macro output */
+/* select the CI (gives a table of the CI for parameters) need this in macro output */
 title 'Distribution of Bootstrap parameters: Intercept and X';
 proc report data=Pctls nowd;
   where _type_ =: 'P';
@@ -170,7 +157,6 @@ run;
 %mend regressionBoot;
 
 options nonotes;
-  
   
   
   
