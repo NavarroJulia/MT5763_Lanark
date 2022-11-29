@@ -7,9 +7,6 @@ PROC IMPORT DATAFILE=REFFILE
 	GETNAMES=YES;
 RUN;
 
-
-
-
 /* 
 
                             Task 2: Bootstrap (SAS)
@@ -30,14 +27,7 @@ using the built-in SAS procedure.
 • Show your code and visualised results.
 • Discuss and interpret your comparative analysis.
 
- */
-
-
-
-
-
-
-/* Notes:
+  Notes:
 
    X - covariate : testosterone level
    Y - response : lengths          
@@ -49,20 +39,7 @@ using the built-in SAS procedure.
    analyse…). 
 */
  
-  
-  /*  ------------------------------------------------------------------------  */
 
- 
-  
-                  /* Bootstrapping for regression parameters */
-
-
-
-
-  
-  
-/*  --------------------------------------------------------------------------------------------  */ 
-  
   
                      /* Macro for bootstrapping of parameters: */
   
@@ -71,7 +48,6 @@ using the built-in SAS procedure.
 
 title "Bootstrap Distribution of Regression Estimates";
 title2 "Case Resampling";
-%let Samples = &NumSamples;   * number of bootstrap resamples; 
 %let IntEst = -21.52601	;     * exact estimates of the intercept;
 %let XEst   =    0.41127;     * exact estimates of X - testosterone;
  
@@ -86,7 +62,7 @@ run;
 
 /* Compute the statistic for EACH bootstrap sample */
 /* eg we have size(Num_samples) parameter estimations (PE):*/
-proc reg data=BootCases outest=PEBoot NOPRINT;
+proc reg data=BootCases outest=PEBoot NOPRINT; *noprint so it does not show up in output;
    by SampleID;
    freq NumberHits;
    model Y = X;
@@ -106,7 +82,7 @@ data _null_;
     call symput('variable_b_'||left(_n_), left(X));
 run;
 
-/*  The macro variables we will be using (note we do not use all): */
+/*  The macro variables we will be using are below (note we do not use all): */
 
 /* location of intercept: */
 %put &=variable_a_1;
@@ -127,13 +103,11 @@ run;
 %put &=variable_b_10;
 
 
-/* -------------------------------------------------------------------------------------- */
-
-/*    Visualize bootstrap distribution : 
-      Histograms for each of the parameters */
-     
-/* Note that here we use the macro variable to indicate location of parameter estimate and
-   the CIs of the parameters!!! */
+/*                     Visualize bootstrap distribution : 
+                      Histograms for each of the parameters
+ 
+Note that here we use the macro variables to indicate location of parameter estimate and
+the CIs of the parameters!!! */
 
 title 'Distribution of Bootstrap parameters: Intercept';
   proc sgplot data=PEboot;
@@ -153,7 +127,6 @@ title 'Distribution of Bootstrap parameters: X (Testosterone)';
   refline &variable_b_10 / axis=x lineattrs=(thickness=2 color=red pattern=solid) label = ("97.5% (=&variable_b_10)");
 run;
 
-/* -------------------------------------------------------------------------------------- */
 
 /* select the CI (gives a table of the CI for parameters) need this in macro output */
 title 'Distribution of Bootstrap parameters: Intercept and X';
@@ -167,35 +140,28 @@ run;
 
 options nonotes;
   
-
-/* Start timer */
-%let _timer_start = %sysfunc(datetime());  
+  
+/*  Measure how long it takes to run this code:  */
+  
+   /* Start timer */
+   %let _timer_start = %sysfunc(datetime());  
   
 %regressionBoot(100000, SEALS2.Import);
   
-/* Stop timer */
-data _null_;
-  dur = datetime() - &_timer_start;
-  put 30*'-' / ' TOTAL DURATION:' dur time13.2 / 30*'-';
-run; 
+   /* Stop timer */
+   data _null_;
+     dur = datetime() - &_timer_start;
+     put 30*'-' / ' TOTAL DURATION:' dur time13.2 / 30*'-';
+   run; 
  
-/*  for 5000 sample:  TOTAL DURATION:   0:00:00.66 */
+/*  for 5000 samples:  TOTAL DURATION:   0:00:00.66
+    for 100000 samples: TOTAL DURATION:   0:00:08.18 */
  
  
-/* 
-   • Compare regBoot.sas to your modified version to determine the speed-up. (Done)
-   
-   • Compare the boostrapped parameter estimates and their 95% confidence intervals to those obtained
-     using the built-in SAS procedure.  
-*/
-  
-  
-  
 /*  $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$  */
   
                       /*  Compare with code previously given:  */
   
-
 
 %macro regBoot(NumberOfLoops, DataSet, XVariable, YVariable);
 
@@ -247,26 +213,23 @@ options nonotes;
 
 /*Run the macro, note this take comparatively longer than the the newer code!!!*/
 
-/* Start timer */
-%let _timer_start = %sysfunc(datetime());  
+   /* Start timer */
+   %let _timer_start = %sysfunc(datetime());  
   
-%regBoot(NumberOfLoops= 500, DataSet=SEALS2.IMPORT, XVariable=testosterone, YVariable=lengths);
+%regBoot(NumberOfLoops= 1000, DataSet=SEALS2.IMPORT, XVariable=testosterone, YVariable=lengths);
 
-/* Stop timer */
-data _null_;
-  dur = datetime() - &_timer_start;
-  put 30*'-' / ' TOTAL DURATION:' dur time13.2 / 30*'-';
-run;
+   /* Stop timer */
+   data _null_;
+     dur = datetime() - &_timer_start;
+     put 30*'-' / ' TOTAL DURATION:' dur time13.2 / 30*'-';
+   run;
 
-/* for 500 samples: TOTAL DURATION:   0:00:08.80 */
+/* for 500 samples: TOTAL DURATION:   0:00:08.80
+   for 1000 samples:  TOTAL DURATION:   0:00:17.24*/
  
-  
-  
-  
-  
-  
-  
-  
+ 
+/*  $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$  */
+
             /* Investigate using built-in SAS procedure: */
 
 data SEALS2.IMPORT2 (keep = X Y);
@@ -283,44 +246,51 @@ run;quit;
 See the 95% CI of the parameters:
 Confidence Limit	Intercept   | 	X
 lower 2.5          -33.22214	|  0.37492
-upper 97.5         -9.82988	    |  0.44761  
+upper 97.5         -9.82988	    |  0.44761 
+
+Locations:
+Intercept ~ -21.52601 
+        X ~   0.41127
 */ 
 
-
+/* Set new macro variables: */
 %let Intlwr = -33.22214	;     * lwr CI of Intercept;
 %let Intupr = -9.82988;       * upr CI of Intercept;
+%let IntLoc = -21.52601;      * location of estimate;
 
 %let Xlwr = 0.37492	;      * lwr CI of X;
 %let Xupr = 0.44761;       * upr CI of X;
+%let XLoc = 0.41127;       * location of estimate;
 
 
-
-/* Let us add these on top the histograms: */
+/* Let us add these on top the histograms previously plotted: */
 
 title 'Distribution of Bootstrap parameters: Intercept';
   proc sgplot data=PEboot;
   histogram intercept;
   refline &variable_a_1 / axis=x lineattrs=(thickness=3 color=red pattern=dash) label = ("Location (=&variable_a_1)");
+  refline &IntLoc / axis=x lineattrs=(thickness=2.5 color=blue pattern=dot) label = ("Location (=&IntLoc)");
+
 /*  plot the confidence interval for intercept:  */
   refline &variable_a_9 / axis=x lineattrs=(thickness=2 color=red pattern=solid) label = ("2.5% (=&variable_a_9)");
   refline &variable_a_10 / axis=x lineattrs=(thickness=2 color=red pattern=solid) label = ("97.5% (=&variable_a_10)");
-  
+ 
   refline &Intlwr / axis=x lineattrs=(thickness=2.5 color=blue pattern=solid) label = ("2.5% (=&Intlwr)");
   refline &Intupr / axis=x lineattrs=(thickness=2.5 color=blue pattern=solid) label = ("97.5% (=&Intupr)");
-  
 run;
 
 title 'Distribution of Bootstrap parameters: X (Testosterone)';
   proc sgplot data=PEboot;
   histogram X;
   refline &variable_b_1 / axis=x lineattrs=(thickness=3 color=red pattern=dash) label = ("Location (=&variable_b_1)");
+  refline &XLoc / axis=x lineattrs=(thickness=2.5 color=blue pattern=dot) label = ("Location (=&XLoc)");
+
 /*  plot the confidence interval for X:  */  
   refline &variable_b_9 / axis=x lineattrs=(thickness=2 color=red pattern=solid) label = ("2.5% (=&variable_b_9)");
   refline &variable_b_10 / axis=x lineattrs=(thickness=2 color=red pattern=solid) label = ("97.5% (=&variable_b_10)");
 
   refline &Xlwr / axis=x lineattrs=(thickness=2.5 color=blue pattern=solid) label = ("2.5% (=&Xlwr)");
-  refline &Xupr / axis=x lineattrs=(thickness=2.5 color=blue pattern=solid) label = ("97.5% (=&Xupr)");
-  
+  refline &Xupr / axis=x lineattrs=(thickness=2.5 color=blue pattern=solid) label = ("97.5% (=&Xupr)"); 
 run;  
   
   
