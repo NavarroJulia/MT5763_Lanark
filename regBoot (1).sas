@@ -242,7 +242,7 @@ proc reg data=SEALS2.IMPORT2;
    model Y = X / CLB;  *gives the 95% confidence limits for parameters;
 run;quit; 
   
-/*  
+/*   
 See the 95% CI of the parameters:
 Confidence Limit	Intercept   | 	X
 lower 2.5          -33.22214	|  0.37492
