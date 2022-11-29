@@ -20,6 +20,7 @@ covariate. (done)
 cm). This is a fictional dataset of male hormone levels in seals of different lengths.
 • State and visualise the 95% confidence intervals for the estimates of each parameter (intercept and
 slope). Provide a histogram for the distribution of each bootstrapped parameter. (done)
+
 • Compare regBoot.sas to your modified version to determine the speed-up. 
 • Compare the boostrapped parameter estimates and their 95% confidence intervals to those obtained
 using the built-in SAS procedure.
@@ -185,19 +186,101 @@ run;
 
 options nonotes;
   
-  
+
+/* Start timer */
+%let _timer_start = %sysfunc(datetime());  
   
 %regressionBoot(5000, SEALS2.Import);
   
-  
+/* Stop timer */
+data _null_;
+  dur = datetime() - &_timer_start;
+  put 30*'-' / ' TOTAL DURATION:' dur time13.2 / 30*'-';
+run; 
  
+/*  for 5000 sample:  TOTAL DURATION:   0:00:00.66 */
  
  
 /* 
-   • Compare regBoot.sas to your modified version to determine the speed-up. 
+   • Compare regBoot.sas to your modified version to determine the speed-up. (Done)
+   
    • Compare the boostrapped parameter estimates and their 95% confidence intervals to those obtained
      using the built-in SAS procedure.  
 */
+  
+  
+  
+/*  $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$  */
+  
+                      /*  Compare with code previously given:  */
+  
+
+
+%macro regBoot(NumberOfLoops, DataSet, XVariable, YVariable);
+
+/*Number of rows in my dataset*/
+ 	data _null_;
+  	set &DataSet NOBS=size;
+  	call symput("NROW",size);
+ 	stop;
+ 	run;
+
+/*loop over the number of randomisations required*/
+%do i=1 %to &NumberOfLoops;
+
+/*Sample my data with replacement*/
+	proc surveyselect data=&DataSet out=bootData seed=-3014 method=urs noprint sampsize=&NROW;
+	run;
+
+/*Conduct a regression on this randomised dataset and get parameter estimates*/
+	proc reg data=bootData outest=ParameterEstimates  noprint;
+	Model &YVariable=&XVariable;
+	run;
+	quit;
+
+/*Extract just the columns for slope and intercept for storage*/
+	data Temp;
+	set ParameterEstimates;
+	keep Intercept &XVariable;
+	run;
+
+/*Create a new results dataset if the first iteration, append for following iterations*/
+	data ResultHolder;
+		%if &i=1 %then %do;
+			set Temp;
+		%end;
+		%else %do;
+			set ResultHolder Temp;
+		%end;
+	run;
+	%end;
+/*Rename the results something nice*/
+data ResultHolder;
+set ResultHolder;
+rename Intercept=RandomIntercept &XVariable=RandomSlope;
+run;
+%mend regBoot;
+
+options nonotes;
+
+
+/*Run the macro, note this take comparatively longer than the the newer code!!!*/
+
+/* Start timer */
+%let _timer_start = %sysfunc(datetime());  
+  
+%regBoot(NumberOfLoops= 500, DataSet=SEALS2.IMPORT, XVariable=testosterone, YVariable=lengths);
+
+/* Stop timer */
+data _null_;
+  dur = datetime() - &_timer_start;
+  put 30*'-' / ' TOTAL DURATION:' dur time13.2 / 30*'-';
+run;
+
+/* for 500 samples: TOTAL DURATION:   0:00:08.80 */
+ 
+  
+  
   
   
   
