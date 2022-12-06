@@ -1,4 +1,11 @@
-/* Import file: */
+
+
+/* Please create a library called SEALS2 and add the path to this folder (where code is).
+   And add csv file in the folderwhere code is located (under server files & folder, under
+   sasuser.v94)
+ */
+
+
 FILENAME REFFILE '/home/u62665966/sasuser.v94/Bootstrapping Group/seals.csv';
 
 PROC IMPORT DATAFILE=REFFILE
@@ -7,41 +14,95 @@ PROC IMPORT DATAFILE=REFFILE
 	GETNAMES=YES;
 RUN;
 
-/* 
 
-                            Task 2: Bootstrap (SAS)
 
-• Create a faster equivalent of the bootstrapping macro regBoot.sas. It only needs to work for one
-covariate. (done)
-• Use the seals data (seals.csv) to perform a regression of testosterone level (in µg/l) on length (in
-cm). This is a fictional dataset of male hormone levels in seals of different lengths.
-• State and visualise the 95% confidence intervals for the estimates of each parameter (intercept and
-slope). Provide a histogram for the distribution of each bootstrapped parameter. (done)
+/*                         Main flow of the code:
 
-• Compare regBoot.sas to your modified version to determine the speed-up. 
-• Compare the boostrapped parameter estimates and their 95% confidence intervals to those obtained
-using the built-in SAS procedure.
+                           ----PART 1:----
+Investigate the SAS CI for the data set and define macro parameters (lines 56 - 64)
+ -set MACROS: (lines 84 - 90)
 
-                             Deliverables
-                             
-• Show your code and visualised results.
-• Discuss and interpret your comparative analysis.
+                           ----PART 2:----
+Create the macro (faster version)
+ -please run the macro (lines 107 - 204)
+ -then run line 212 (without timer)
+ -or line 222 - 231 (with timer)
+     --> This will result in two histogram outputs and a table of values 
 
-  Notes:
 
-   X - covariate : testosterone level
-   Y - response : lengths          
-  
-   From notes:
-
-   To produce an efficient bootstrap in SAS, we want to create all our bootstrap samples
-   first, and then run the analyses over these (as opposed to resample, analyse, resample, 
-   analyse…). 
-*/
+                           ----PART 3:----
+Code for the old macro (lines 252 - 297)
+ -run without timer (line 304)
+ -with timer (lines 313 - 322)
  
+ 
+                           ----PART 4:----  
+Lastly: Plot two more histograms
+ -these have the bootstrapped parameters and CIs (in red) and the SAS CIs (in blue) 
+ - lines : 357 - 383
+*/
 
+
+
+
+/*-----------------------------------------------------------------------------------------*/
+/*-------------------------------------PART 1:---------------------------------------------*/
+/*-----------------------------------------------------------------------------------------*/
+
+
+                     /* Investigate using built-in SAS procedure: */
+
+
+data SEALS2.IMPORT2 (keep = X Y);
+  set SEALS2.IMPORT(rename=(lengths=Y testosterone=X));  
+  *rename lengths and testosterone as y and x (x is explanatory var and y is predicted var);
+run;
+ 
+/* without bootstrapping the parameter values are: */
+proc reg data=SEALS2.IMPORT2;
+   model Y = X / CLB;  *gives the 95% confidence limits for parameters;
+run;quit; 
+   
   
-                     /* Macro for bootstrapping of parameters: */
+/*   
+          See the 95% CI of the parameters:
+
+
+Confidence Limit	Intercept   | 	X
+lower 2.5          -33.22214	|  0.37492
+upper 97.5         -9.82988	    |  0.44761 
+
+          And locations:
+          
+Intercept ~ -21.52601 
+        X ~   0.41127
+        
+
+       -> Set new macro variables: 
+*/
+
+%let Intlwr = -33.22214	;     * lwr CI of Intercept;
+%let Intupr = -9.82988;       * upr CI of Intercept;
+%let IntLoc = -21.52601;      * location of estimate;
+
+%let Xlwr = 0.37492	;      * lwr CI of X;
+%let Xupr = 0.44761;       * upr CI of X;
+%let XLoc = 0.41127;       * location of estimate;
+
+/* Will be used at the end for the last two histograms... */
+
+
+/*-----------------------------------------------------------------------------------------*/
+/*---------------------------------------PART 2:-------------------------------------------*/
+/*-----------------------------------------------------------------------------------------*/
+
+
+
+/* 
+                            Task 2: Bootstrap (SAS)
+                     Macro for bootstrapping of parameters: */
+                    
+                    
   
 %macro regressionBoot(NumSamples, DataSet);
 
@@ -82,6 +143,7 @@ data _null_;
     call symput('variable_b_'||left(_n_), left(X));
 run;
 
+
 /*  The macro variables we will be using are below (note we do not use all): */
 
 /* location of intercept: */
@@ -105,6 +167,7 @@ run;
 
 /*                     Visualize bootstrap distribution : 
                       Histograms for each of the parameters
+ 
  
 Note that here we use the macro variables to indicate location of parameter estimate and
 the CIs of the parameters!!! */
@@ -139,27 +202,50 @@ run;
 %mend regressionBoot;
 
 options nonotes;
+
+
+/*-----------------------------------------------------------------------------------------*/
+
+
+                         /* Run code without timer: */
+
+%regressionBoot(100, SEALS2.Import);
+
+/*-----------------------------------------------------------------------------------------*/
   
   
-/*  Measure how long it takes to run this code:  */
+                         /* Run code WITH timer:
+
+   Measure how long it takes to run this code:  */
+  
   
    /* Start timer */
    %let _timer_start = %sysfunc(datetime());  
   
-%regressionBoot(100000, SEALS2.Import);
+%regressionBoot(100, SEALS2.Import);
   
    /* Stop timer */
    data _null_;
      dur = datetime() - &_timer_start;
      put 30*'-' / ' TOTAL DURATION:' dur time13.2 / 30*'-';
    run; 
- 
+   
+   
+/*-----------------------------------------------------------------------------------------*/
+   
+   
+                     /*  Times observed:   */
+   
 /*  for 5000 samples:  TOTAL DURATION:   0:00:00.66
     for 100000 samples: TOTAL DURATION:   0:00:08.18 */
  
  
-/*  $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$  */
-  
+/*-----------------------------------------------------------------------------------------*/
+/*---------------------------------------PART 3:-------------------------------------------*/
+/*-----------------------------------------------------------------------------------------*/
+
+
+
                       /*  Compare with code previously given:  */
   
 
@@ -210,8 +296,19 @@ run;
 
 options nonotes;
 
+/*-----------------------------------------------------------------------------------------*/
 
-/*Run the macro, note this take comparatively longer than the the newer code!!!*/
+
+                        /* Run without timer: */
+
+%regBoot(NumberOfLoops= 1000, DataSet=SEALS2.IMPORT, XVariable=testosterone, YVariable=lengths);
+
+
+/*-----------------------------------------------------------------------------------------*/
+
+
+                        /* Run the macro WITH timer: /*
+
 
    /* Start timer */
    %let _timer_start = %sysfunc(datetime());  
@@ -224,46 +321,38 @@ options nonotes;
      put 30*'-' / ' TOTAL DURATION:' dur time13.2 / 30*'-';
    run;
 
+
+/*-----------------------------------------------------------------------------------------*/
+
+
+                       /* Note the times: */
+
 /* for 500 samples: TOTAL DURATION:   0:00:08.80
    for 1000 samples:  TOTAL DURATION:   0:00:17.24*/
  
  
-/*  $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$  */
 
-            /* Investigate using built-in SAS procedure: */
 
-data SEALS2.IMPORT2 (keep = X Y);
-  set SEALS2.IMPORT(rename=(lengths=Y testosterone=X));  
-  *rename lengths and testosterone as y and x (x is explanatory var and y is predicted var);
-run;
+
+
+/*-----------------------------------------------------------------------------------------*/
+/*--------------------------------------PART 4:--------------------------------------------*/
+/*-----------------------------------------------------------------------------------------*/
+
+
+                    
+
+/* Here we add the in build CIs with the bootstrapped ones (nothing to do with the 
+   old macro code).
+
+Let us add these on top the histograms previously plotted:
+
+NOTE:
  
-/* without bootstrapping the parameter values are: */
-proc reg data=SEALS2.IMPORT2;
-   model Y = X / CLB;  *gives the 95% confidence limits for parameters;
-run;quit; 
-  
-/*   
-See the 95% CI of the parameters:
-Confidence Limit	Intercept   | 	X
-lower 2.5          -33.22214	|  0.37492
-upper 97.5         -9.82988	    |  0.44761 
-
-Locations:
-Intercept ~ -21.52601 
-        X ~   0.41127
-*/ 
-
-/* Set new macro variables: */
-%let Intlwr = -33.22214	;     * lwr CI of Intercept;
-%let Intupr = -9.82988;       * upr CI of Intercept;
-%let IntLoc = -21.52601;      * location of estimate;
-
-%let Xlwr = 0.37492	;      * lwr CI of X;
-%let Xupr = 0.44761;       * upr CI of X;
-%let XLoc = 0.41127;       * location of estimate;
-
-
-/* Let us add these on top the histograms previously plotted: */
+ - Bootstrapped CIs and parameters are in RED,
+ - SAS CIs and parameters are in BLUE.
+ 
+*/
 
 title 'Distribution of Bootstrap parameters: Intercept';
   proc sgplot data=PEboot;
