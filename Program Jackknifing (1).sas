@@ -1,4 +1,9 @@
-/*Import data/ read in file:*/
+
+/* Please create a library called SEALS and add the path to this folder (where code is).
+   And add csv file in the folderwhere code is located (under server files & folder, under
+   sasuser.v94)
+ */
+
 FILENAME REFFILE '/home/u62665966/sasuser.v94/Jack Knifing/seals.csv';
 
 PROC IMPORT DATAFILE=REFFILE
@@ -7,45 +12,46 @@ PROC IMPORT DATAFILE=REFFILE
 	GETNAMES=YES;
 RUN;
 
-/*View the whole data set:*/
-proc print data=seals.import (obs=100);
-run;
 
-/* ------------------------------------------------------------------------------------- */
+/*                         Main flow of the code:
 
-/*                                   Task:
+                           ----PART 1:----
+Perform Jackknife method in SAS and obtain the SE for the mean
+ - run code from lines 42 - 131,
+ - SE for the mean is on line 135 - 137
 
-Write and implement code (modifying code already given to you in the lecture notes e.g. the
-two sample randomisation test), to obtain a jackknife estimate for the standard error of the 
-mean for seal body length, using the seals data set (seals.csv).
+                           ----PART 2:----
+Calculating the SE for the mean without the jackknife method
+ - run code from lines 149 - 175,
+ - SE is on lines 180 - 182
+ 
+                           ----PART 3:----
+Compare the means: lines 197 - 198 
 
-I.e., sampling without replacement.
+-> show data is linear: lines 211 - 214
 
 */
 
-/* ------------------------------------------------------------------------------------- */
+
+
+/*-----------------------------------------------------------------------------------------*/
+/*-------------------------------------PART 1:---------------------------------------------*/
+/*-----------------------------------------------------------------------------------------*/
+
 
 DATA seals.import_lengths; 
 SET seals.import;
 Keep Lengths;                *keep lengths column, drop the other one (not needed);
 RUN;
 
-/* View: */
-proc print data=seals.import_lengths (obs=100);
-run;
+
 
 DATA seals.import_lengths; 
 SET seals.import_lengths;
-RENAME lengths=Original_Lengths;
-RENAME original_lengths=Jackknife_0;      *rename original data as Jackknife_0 (did this
+RENAME lengths=Jackknife_0;      *rename original data as Jackknife_0 (did this
                                            because the loops below will be easier to 
                                            implement);
 RUN;
-
-DATA TestSettingCombining;
-SET seals.import_lengths seals.import_lengths seals.import_lengths; 
-RUN;                            *Combine columns from the two data sets;
-
 
 
 data seals.import_Jack_100copies (drop=j);
@@ -57,6 +63,7 @@ array Jackknife_[100];          *define array;
                                  Jackknife_100);
 run;
 
+
 data seals.import_Jack_Diag (drop=i);
 set seals.import_Jack_100copies;
 array Jackknife Jackknife_1 -- Jackknife_100;   *apply loop over all columns;
@@ -66,19 +73,24 @@ array Jackknife Jackknife_1 -- Jackknife_100;   *apply loop over all columns;
 run;
 
 
-/* take transpose */
+                  /* take transpose */
+
 PROC TRANSPOSE DATA=seals.import_Jack_Diag OUT=seals.import_Jack_Transpose;
 VAR Jackknife_0-Jackknife_100;          *transpose the data to take mean (row-wise);
 RUN;                                    *columns name go from COL1 to COL100;
 
-/* calculate row wise mean: */
+
+                  /* calculate row wise mean: */
+
 data seals.import_Jack_Mean ;
   set seals.import_Jack_Transpose;
   Rename _NAME_ = Sample;            *rename column as sample (nicer name);
   Means = mean(of Col1 - Col100);    *calculate the mean over all columns (row-wise);
 run;
 
-/* Calculate standard error using this: */
+
+                  /* Calculate standard error using this: */
+
 DATA seals.import_Jack_OnlyMean; 
 SET seals.import_Jack_Mean;
 KEEP Means;                     *only use the means column - need this for SE;
@@ -86,7 +98,8 @@ RUN;
 
 
 
-               /* Calculate Standard Error for Mean: */
+                   /* Calculate Standard Error for Mean: */
+              
               
 data seals.import_Jack_Square;
 set seals.import_Jack_OnlyMean;
@@ -96,17 +109,19 @@ Diff = Means-Means1;   *store the differences in new column, Diff;
 Square = Diff**2;      *square the differences and store in new column, Square;
 run;
 
+
 proc means data=seals.import_Jack_Square sum;
     variable Square;   *calculate the sums of the column, Square;
 run;
-/* Sum(Square) = 122.8845513 */
+                 /* Sum(Square) = 122.8845513 */
 
+ 
 data seals.import_Jack_SE;
 set seals.import_Jack_Square;
 Sum = 122.8845513;         *we manually take the sum;
 SE = sqrt((99/100)*Sum);   *calculate the rest of the formula, where n=100, store in SE;
 run;
-/* SE ~ 11.029764539 */
+                  /* SE ~ 11.029764539 */
 
 
 DATA seals.import_Jack_SE; 
@@ -115,13 +130,18 @@ KEEP SE;                      *keep only the SE column;
 rename SE = Standard_Error;   *rename appropriately;
 RUN;
 
-/*Look at the SE:*/
+                  /*Look at the SE:*/
+                 
 proc print data=seals.import_Jack_SE (obs=1); *keep the first observation (note that all 
                                                are the same in the column);
 run;
 
+                  /* = 11.0298 */
 
-/* ------------------------------------------------------------------------------------- */
+/*-----------------------------------------------------------------------------------------*/
+/*-------------------------------------PART 2:---------------------------------------------*/
+/*-----------------------------------------------------------------------------------------*/
+
 
                        /* Calculate analytical standard error */
 
@@ -138,11 +158,14 @@ Diff = Jackknife_0 - MeanJack_0;       *find the difference, store in Diff;
 Square = Diff**2;                      *square it and store in Square;
 run;
 
-/* find the sum manually: */
+
+               /* find the sum manually: */
+
 proc means data=seals.import_Jack_AnalyticalSE sum;
     variable Square;   *calculate the sums of the column, Square;
 run;
-/* Sum(Square) = 3035.96 */
+               /* Sum(Square) = 3035.96 */
+
 
 data seals.import_Jack_AnalyticalSE;
 set seals.import_Jack_AnalyticalSE;
@@ -151,27 +174,29 @@ Standard_error = sqrt((1/100)*Sum);
 keep Standard_Error;       
 run;
 
-/*Look at the SE:*/
+
+               /*Look at the SE:*/
+
 proc print data=seals.import_Jack_AnalyticalSE (obs=1); *keep the first observation (note that all 
                                                          are the same in the column);
 run;
 
+        /* Standard Error is 5.50995 which is smaller than for the Jackknife 
+           sample (= 11.029764539)*/
 
 
-/* Standard Error is 5.50995 which is smaller than for the Jackknife sample (11.029764539)*/
 
+/*-----------------------------------------------------------------------------------------*/
+/*-------------------------------------PART 3:---------------------------------------------*/
+/*-----------------------------------------------------------------------------------------*/
 
-/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 /* Compare the mean of the original data to the average using Jackknifing */
 
-
-/* Mean from sample = 110.71628445
+/* 
+   Mean from sample = 110.71628445
    Mean using Jackknifing = 109.6201 (see code below for calculation)
 */
-
-/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
-
 
 proc sql;
     select avg(Means) as Mean_Jackknife
@@ -179,26 +204,17 @@ proc sql;
 quit;
 
 
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
-/* From SAS website: (https://support.sas.com/kb/24/982.html)
- 
-                        The Jackknife:
-
-The jackknife works only for statistics that are smooth functions of the data. Statistics
-that are not smooth functions of the data, such as quantiles, may yield inconsistent 
-jackknife estimates. The best results are obtained with statistics that are linear 
-functions of the data. For highly nonlinear statistics, the jackknife can be inaccurate.
-
-*/
-
-
-/* relationship appears linear: */
+                  /* Relationship appears linear: */
 
 proc plot data=SEALS.IMPORT;
    plot lengths*testosterone;
    title 'Lengths against testosterone';
 run;
 
+
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 
 
