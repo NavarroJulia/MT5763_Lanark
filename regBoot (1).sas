@@ -1,5 +1,5 @@
-
-
+/*  */
+/*  */
 /* Please create a library called SEALS2 and add the path to this folder (where code is).
    And add csv file in the folderwhere code is located (under server files & folder, under
    sasuser.v94)
@@ -16,7 +16,7 @@ RUN;
 
 
 
-/*                         Main flow of the code:
+/*                         Main flow of the code (run in order):
 
                            ----PART 1:----
 Investigate the SAS CI for the data set and define macro parameters (lines 56 - 64)
@@ -113,7 +113,7 @@ title2 "Case Resampling";
 %let XEst   =    0.41127;     * exact estimates of X - testosterone;
  
 /* Generate our samples: (reps = number of samples wanted) */
-proc surveyselect data=SEALS2.IMPORT2 NOPRINT seed=314
+proc surveyselect data=&DataSet NOPRINT seed=314
      out=BootCases(rename=(Replicate=SampleID))
      method=urs              /* resample with replacement */
      samprate=1              /* each bootstrap sample has N observations */
@@ -209,7 +209,7 @@ options nonotes;
 
                          /* Run code without timer: */
 
-%regressionBoot(100, SEALS2.Import);
+%regressionBoot(100, SEALS2.Import2);
 
 /*-----------------------------------------------------------------------------------------*/
   

@@ -1,4 +1,4 @@
-
+/*  */
 /* Please create a library called SEALS and add the path to this folder (where code is).
    And add csv file in the folderwhere code is located (under server files & folder, under
    sasuser.v94)
@@ -13,7 +13,7 @@ PROC IMPORT DATAFILE=REFFILE
 RUN;
 
 
-/*                         Main flow of the code:
+/*                         Main flow of the code (run in order):
 
                            ----PART 1:----
 Perform Jackknife method in SAS and obtain the SE for the mean
