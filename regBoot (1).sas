@@ -253,7 +253,7 @@ options nonotes;
 
                          /* Run code without timer: */
 
-%regressionBoot(100, SEALS2.Import2);
+%regressionBoot(100000, SEALS2.Import2);
 
 /*-----------------------------------------------------------------------------------------*/
   
@@ -266,7 +266,7 @@ options nonotes;
    /* Start timer */
    %let _timer_start = %sysfunc(datetime());  
   
-%regressionBoot(100, SEALS2.Import);
+%regressionBoot(100000, SEALS2.Import2);
   
    /* Stop timer */
    data _null_;
