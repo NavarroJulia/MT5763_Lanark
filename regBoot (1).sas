@@ -24,22 +24,22 @@ Investigate the SAS CI for the data set and define macro parameters (lines 56 - 
 
                            ----PART 2:----
 Create the macro (faster version)
- -please run the macro (lines 107 - 204)
- -then run line 212 (without timer)
- -or line 222 - 231 (with timer)
+ -please run the macro (lines 107 - 248)
+ -then run line 256 (without timer)
+ -or line 267 - 275 (with timer)
      --> This will result in two histogram outputs and a table of values 
 
 
                            ----PART 3:----
-Code for the old macro (lines 252 - 297)
- -run without timer (line 304)
- -with timer (lines 313 - 322)
+Code for the old macro (lines 296 - 341)
+ -run without timer (line 348)
+ -with timer (lines 358 - 366)
  
  
-                           ----PART 4:----  
-Lastly: Plot two more histograms
- -these have the bootstrapped parameters and CIs (in red) and the SAS CIs (in blue) 
- - lines : 357 - 383
++ 
++
++
++
 */
 
 
@@ -199,6 +199,50 @@ proc report data=Pctls nowd;
   columns ('Bootstrap Confidence Intervals' _ALL_);
 run; 
 
+
+
+
+/* Here we add the in build CIs with the bootstrapped ones 
+
+Let us add these on top the histograms previously plotted:
+
+NOTE:
+ 
+ - Bootstrapped CIs and parameters are in RED,
+ - SAS CIs and parameters are in BLUE.
+ 
+*/
+
+title 'Distribution of Bootstrap parameters: Intercept';
+  proc sgplot data=PEboot;
+  histogram intercept;
+  refline &variable_a_1 / axis=x lineattrs=(thickness=3 color=red pattern=dash) label = ("Location (=&variable_a_1)");
+  refline &IntLoc / axis=x lineattrs=(thickness=2.5 color=blue pattern=dot) label = ("Location (=&IntLoc)");
+
+/*  plot the confidence interval for intercept:  */
+  refline &variable_a_9 / axis=x lineattrs=(thickness=2 color=red pattern=solid) label = ("2.5% (=&variable_a_9)");
+  refline &variable_a_10 / axis=x lineattrs=(thickness=2 color=red pattern=solid) label = ("97.5% (=&variable_a_10)");
+ 
+  refline &Intlwr / axis=x lineattrs=(thickness=2.5 color=blue pattern=solid) label = ("2.5% (=&Intlwr)");
+  refline &Intupr / axis=x lineattrs=(thickness=2.5 color=blue pattern=solid) label = ("97.5% (=&Intupr)");
+run;
+
+title 'Distribution of Bootstrap parameters: X (Testosterone)';
+  proc sgplot data=PEboot;
+  histogram X;
+  refline &variable_b_1 / axis=x lineattrs=(thickness=3 color=red pattern=dash) label = ("Location (=&variable_b_1)");
+  refline &XLoc / axis=x lineattrs=(thickness=2.5 color=blue pattern=dot) label = ("Location (=&XLoc)");
+
+/*  plot the confidence interval for X:  */  
+  refline &variable_b_9 / axis=x lineattrs=(thickness=2 color=red pattern=solid) label = ("2.5% (=&variable_b_9)");
+  refline &variable_b_10 / axis=x lineattrs=(thickness=2 color=red pattern=solid) label = ("97.5% (=&variable_b_10)");
+
+  refline &Xlwr / axis=x lineattrs=(thickness=2.5 color=blue pattern=solid) label = ("2.5% (=&Xlwr)");
+  refline &Xupr / axis=x lineattrs=(thickness=2.5 color=blue pattern=solid) label = ("97.5% (=&Xupr)"); 
+run;
+
+
+
 %mend regressionBoot;
 
 options nonotes;
@@ -335,57 +379,13 @@ options nonotes;
 
 
 
-/*-----------------------------------------------------------------------------------------*/
-/*--------------------------------------PART 4:--------------------------------------------*/
-/*-----------------------------------------------------------------------------------------*/
-
 
                     
 
-/* Here we add the in build CIs with the bootstrapped ones (nothing to do with the 
-   old macro code).
-
-Let us add these on top the histograms previously plotted:
-
-NOTE:
- 
- - Bootstrapped CIs and parameters are in RED,
- - SAS CIs and parameters are in BLUE.
- 
-*/
-
-title 'Distribution of Bootstrap parameters: Intercept';
-  proc sgplot data=PEboot;
-  histogram intercept;
-  refline &variable_a_1 / axis=x lineattrs=(thickness=3 color=red pattern=dash) label = ("Location (=&variable_a_1)");
-  refline &IntLoc / axis=x lineattrs=(thickness=2.5 color=blue pattern=dot) label = ("Location (=&IntLoc)");
-
-/*  plot the confidence interval for intercept:  */
-  refline &variable_a_9 / axis=x lineattrs=(thickness=2 color=red pattern=solid) label = ("2.5% (=&variable_a_9)");
-  refline &variable_a_10 / axis=x lineattrs=(thickness=2 color=red pattern=solid) label = ("97.5% (=&variable_a_10)");
- 
-  refline &Intlwr / axis=x lineattrs=(thickness=2.5 color=blue pattern=solid) label = ("2.5% (=&Intlwr)");
-  refline &Intupr / axis=x lineattrs=(thickness=2.5 color=blue pattern=solid) label = ("97.5% (=&Intupr)");
-run;
-
-title 'Distribution of Bootstrap parameters: X (Testosterone)';
-  proc sgplot data=PEboot;
-  histogram X;
-  refline &variable_b_1 / axis=x lineattrs=(thickness=3 color=red pattern=dash) label = ("Location (=&variable_b_1)");
-  refline &XLoc / axis=x lineattrs=(thickness=2.5 color=blue pattern=dot) label = ("Location (=&XLoc)");
-
-/*  plot the confidence interval for X:  */  
-  refline &variable_b_9 / axis=x lineattrs=(thickness=2 color=red pattern=solid) label = ("2.5% (=&variable_b_9)");
-  refline &variable_b_10 / axis=x lineattrs=(thickness=2 color=red pattern=solid) label = ("97.5% (=&variable_b_10)");
-
-  refline &Xlwr / axis=x lineattrs=(thickness=2.5 color=blue pattern=solid) label = ("2.5% (=&Xlwr)");
-  refline &Xupr / axis=x lineattrs=(thickness=2.5 color=blue pattern=solid) label = ("97.5% (=&Xupr)"); 
-run;  
   
   
   
-  
-  
+
   
   
   
